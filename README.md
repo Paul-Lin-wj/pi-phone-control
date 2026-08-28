@@ -1,6 +1,6 @@
-# pi-agent
+# pi-phone-control
 
-基于 [pi](https://github.com/earendil-works/pi-coding-agent)（@earendil-works/pi-coding-agent）全局改造的**手机操作 agent**——所有 pi 会话自动具备受约束的手机操控能力：截屏看屏、触控注入、中文输入、拉起应用，全程横幅常显可暂停/终止，多层防线防模型越权。
+基于 [pi](https://github.com/earendil-works/pi-coding-agent)（@earendil-works/pi-coding-agent）全局改造的**Android 手机操控 agent**——所有 pi 会话自动具备受约束的手机操控能力：截屏看屏、触控注入、中文输入、拉起应用，全程横幅常显可暂停/终止，多层防线防模型越权。
 
 ## 功能
 
