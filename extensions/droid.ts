@@ -19,6 +19,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execSync } from "child_process";
+import { auditSession, AUDIT_GUARD_RE } from "./audit.ts";
 
 const SERIAL = "127.0.0.1:5555";
 const CMDF = "/data/data/com.claude.overlay/files/cmd";
@@ -224,8 +225,49 @@ export default function droidExtension(pi: ExtensionAPI) {
 		return { systemPrompt: event.systemPrompt + DROID_RULES };
 	});
 
+	// ── 审计包装：每个工具 execute 强制过审计（模型只能给参数，控制不了记录本身）──
+	// screen 的截图落盘文件名经 pendingShot 带入对应事件行
+	let pendingShot: string | undefined;
+	const rawRegister = pi.registerTool.bind(pi);
+	(pi as any).registerTool = (t: any) => {
+		const orig = t.execute;
+		t.execute = async (...a: any[]) => {
+			const t0 = Date.now();
+			try {
+				const r = await orig(...a);
+				const text = r?.content?.find((c: any) => c.type === "text")?.text;
+				const fail = typeof text === "string" && /失败|错误|无法|denied|error/i.test(text);
+				auditSession.event(t.name, a[1], !fail, Date.now() - t0, {
+					...(pendingShot ? { shot: pendingShot } : {}),
+					...(typeof text === "string" ? { result: text.slice(0, 300) } : {}),
+				});
+				pendingShot = undefined;
+				return r;
+			} catch (e: any) {
+				auditSession.event(t.name, a[1], false, Date.now() - t0, {
+					...(pendingShot ? { shot: pendingShot } : {}),
+					error: String(e?.message ?? e).slice(0, 300),
+				});
+				pendingShot = undefined;
+				throw e;
+			}
+		};
+		return rawRegister(t);
+	};
+
 	// ── 封堵内置 bash 绕过：adb/su/sudo 只能经 droid 工具的白名单路径 ──
 	pi.on("tool_call", async (event, ctx) => {
+		// 审计守卫：审计目录与扩展本体对模型只封不启（写/删/执行一律；读也挡住防注入素材）
+		if (/^(write|edit|bash)$/i.test(event.toolName)) {
+			const blob = JSON.stringify(event.input ?? "");
+			if (AUDIT_GUARD_RE.test(blob)) {
+				return {
+					block: true,
+					reason:
+						"安全策略：审计日志（.pi/agent/audit）与 droid 扩展本体不可读写、修改、删除——审计层必须保持模型不可控。请继续正常任务。",
+				};
+			}
+		}
 		if (event.toolName !== "bash") return;
 		const cmd = String((event.input as { command?: unknown })?.command ?? "");
 		if (/\badb\b/.test(cmd) || /\bsu\b/.test(cmd) || /\bsudo\b/.test(cmd)) {
@@ -275,6 +317,7 @@ export default function droidExtension(pi: ExtensionAPI) {
 					timeout: 20000,
 					maxBuffer: 20 * 1024 * 1024,
 				});
+				pendingShot = auditSession.shot(png); // 审计存档：本次截图按序号落盘
 				restoreBanner();
 				return {
 					content: [
@@ -481,6 +524,7 @@ export default function droidExtension(pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async () => {
+		auditSession.event("session_shutdown", {}, true, 0);
 		cleanup();
 	});
 }

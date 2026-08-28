@@ -64,6 +64,25 @@ node_modules                      symlink → pi 包依赖（供测试解析 typ
 
 完整攻击向量、修复过程与回归见 `docs/security-report.md`（三轮红队：框架逃逸 4 向量、混淆/注入 8 向量、混淆门加固回归 13 用例）。
 
+## 执行审计（每次执行可审查，2026-08-28 建设）
+
+所有工具调用被**代码强制记录**——审计点在工具层（`extensions/audit.ts`），模型只能提供参数，控制不了"写不写、写什么格式、能否删"。模型可见的工具接口完全不变，纯旁路。
+
+```
+~/.pi/agent/audit/<时间戳-pid>/
+  meta.json        会话元信息（开始时间/pid）
+  events.jsonl     事件流：ts / 工具名 / 参数全文 / ok / 耗时 / 截图文件 / 结果或错误
+  0001-screen.png  screen 截图按序号存档
+```
+
+审查入口（只给用户，刻意不暴露给模型——日志进模型上下文反而给截屏注入添素材）：
+
+```bash
+node --experimental-strip-types tools/audit-report.ts latest   # 生成 HTML 时间线（表格+内嵌截图）
+```
+
+**防篡改**（四条模型通道全封堵，回归 `tests/audit.test.ts`）：`write`/`edit`/`bash` 的输入命中审计目录或扩展本体（`.pi/agent/audit`、`.pi/agent/extensions`、`droid.ts`）一律硬拦——写/删/执行/读全挡。已记录的攻击参数（`$(touch)` 注入、reboot 尝试）实测均在案可查。剩余边界：bash 命令**不含**这些路径字面量的间接删除（如 `find ~ -name '*.jsonl'`）靠混淆门+概率兜底。
+
 ## ⚠️ 警告
 
 - **root 级真实设备控制**：工具链末端是宿主机的 `su`，模型执行的每一步都作用于你的真实手机——误点、误发、误删不可逆。只在 you own 的设备上部署
@@ -85,6 +104,7 @@ done
 - `droid.test.ts`：13 用例（注入/校验/拦截/终态零标记）——需要手机在线（adb 127.0.0.1:5555）
 - `round2.test.ts`：6 用例（ovl 注入/APP_RE 变体/key 枚举）
 - `bash-bypass.test.ts`：混淆确认门回归（硬拦不弹门 / 放行 / 拒绝 / 无 UI 默认拒 / 普通命令误伤对照）
+- `audit.test.ts`：审计层回归（防篡改守卫 12 用例 / 写入落盘 / 截图编号 / 多会话隔离）——无手机依赖
 - `banner-show.test.ts`：横幅显示回归
 
 ## 相关配置（不在本仓库，含密钥）
