@@ -109,5 +109,5 @@ done
 
 ## 相关配置（不在本仓库，含密钥）
 
-- `~/.pi/agent/settings.json`：defaultModel（当前 glm-5.3-flash）+ `defaultThinkingLevel: "off"`（2026-08-28 速度优化：手机操作是看图量坐标的模式化任务，实测单轮 thinking 开销不显著但多步累积可观；复杂任务临时升级 `pi --thinking max`）
+- `~/.pi/agent/settings.json`：defaultModel（当前 glm-5.3-flash）+ `defaultThinkingLevel: "medium"`（2026-08-28 速度调优：原 max 每步深推理拖慢节奏，off 又太直给——屏幕有意外内容时会照字面跑偏；medium 平衡思考与速度，复杂任务临时 `pi --thinking max`）
 - `~/.pi/agent/models.json`：模型需 `"input": ["text", "image"]` 才收截图
