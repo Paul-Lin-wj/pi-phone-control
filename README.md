@@ -109,5 +109,5 @@ done
 
 ## 相关配置（不在本仓库，含密钥）
 
-- `~/.pi/agent/settings.json`：defaultModel（当前 glm-5.3-flash）+ `defaultThinkingLevel: "medium"`（2026-08-28 速度调优：原 max 每步深推理拖慢节奏，off 又太直给——屏幕有意外内容时会照字面跑偏；medium 平衡思考与速度，复杂任务临时 `pi --thinking max`）
+- `~/.pi/agent/settings.json`：defaultModel（当前 glm-5.3-flash）+ `defaultThinkingLevel: "medium"`（2026-08-28 速度调优：原 max 每步深推理拖慢节奏，off 又太直给——屏幕有意外内容时会照字面跑偏；medium 平衡思考与速度，复杂任务临时 `pi --thinking max`）+ **专用化改造（2026-08-28）**：`"skills": ["!*"]` 全禁 skills 自动发现（原会加载 `~/.agents/skills/` 的 26 个飞书技能，与手机操控无关）、移除 `packages: ["npm:pi-subagents"]`（subagent delegation 属"其他处理"通道，droid.ts 不依赖它）——pi 现在是纯手机操控 agent
 - `~/.pi/agent/models.json`：模型需 `"input": ["text", "image"]` 才收截图
