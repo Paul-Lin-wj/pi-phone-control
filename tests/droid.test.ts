@@ -80,6 +80,8 @@ check("T5b 普通命令放行", r5b === undefined);
 const fs = require("fs");
 const local = [1, 2, 3, 4].filter((i) => fs.existsSync(`/tmp/pwn-v${i}`));
 const phone = execSync(`adb -s 127.0.0.1:5555 shell "su -c 'ls /data/local/tmp/'"`).toString().match(/pwn-v\d/g) ?? [];
+// 测试是独立进程，不走 pi 的 session_shutdown——撤掉 checkControl 拉起的横幅
+execSync("/home/Linhy/mywork/host/claude-overlay/ovl hide", { timeout: 10000 });
 check("终态: 宿主机零标记", local.length === 0, local.join(","));
 check("终态: 手机零标记", phone.length === 0, phone.join(","));
 

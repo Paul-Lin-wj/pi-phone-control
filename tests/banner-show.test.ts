@@ -5,3 +5,5 @@ const tools: Record<string, any> = {};
 droidExt({ registerTool: (t: any) => (tools[t.name] = t), on: () => {}, registerCommand: () => {} } as any);
 await tools.banner.execute("t1", { message: "横幅'单引号'显示测试 ✓" }, undefined, undefined, { abort: () => {} } as any);
 console.log("banner 已调用");
+// 测试是独立进程，不走 pi 的 session_shutdown——收尾必须自己做，否则横幅残留手机
+require("child_process").execSync("/home/Linhy/mywork/host/claude-overlay/ovl hide", { timeout: 10000 });
