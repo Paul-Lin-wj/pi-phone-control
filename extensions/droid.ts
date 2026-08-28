@@ -19,7 +19,8 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execSync } from "child_process";
-import { auditSession, AUDIT_GUARD_RE } from "./audit.ts";
+// 审计核心：绝对路径指仓库真身——pi 会把扩展目录下每个 .ts 当独立扩展加载，audit.ts 不能放那里（无 factory 会加载失败）
+import { auditSession, AUDIT_GUARD_RE } from "/home/Linhy/mywork/host/pi-agent/extensions/audit.ts";
 
 const SERIAL = "127.0.0.1:5555";
 const CMDF = "/data/data/com.claude.overlay/files/cmd";
