@@ -1,6 +1,6 @@
 # pi-phone-control
 
-基于 [pi](https://github.com/earendil-works/pi-coding-agent)（@earendil-works/pi-coding-agent）全局改造的**Android 手机操控 agent**——所有 pi 会话自动具备受约束的手机操控能力：截屏看屏、触控注入、中文输入、拉起应用，全程横幅常显可暂停/终止，多层防线防模型越权。
+基于 [pi](https://github.com/earendil-works/pi-coding-agent)（@earendil-works/pi-coding-agent）全局改造的**Android 手机操控 agent**——所有 pi 会话自动具备受约束的手机操控能力：截屏看屏、触控注入、中文输入、拉起应用，全程横幅常显可暂停/终止（横幅组件：[android-task-banner](https://github.com/Paul-Lin-wj/android-task-banner)），多层防线防模型越权。
 
 ## 功能
 
@@ -49,7 +49,7 @@ node_modules                      symlink → pi 包依赖（供测试解析 typ
 
 - **部署形态**：真身在本仓库，`~/.pi/agent/extensions/droid.ts` 是 symlink——pi 的扩展自动发现照常加载，`/reload` 热重载有效
 - **测试解析**：仓库内 `node_modules` symlink 指向 pi 包的依赖（node 按 realpath 解析 import）
-- **手机端依赖**：DroidSpaces adb 通道（见上节）、[ClaudeOverlay](../../claude-overlay)（悬浮横幅 + ⏸⏹按钮）、ADBKeyboard（中文输入）
+- **手机端依赖**：DroidSpaces adb 通道（见上节）、[ClaudeOverlay](https://github.com/Paul-Lin-wj/android-task-banner)（悬浮横幅 + ⏸⏹按钮，开源仓库 android-task-banner）、ADBKeyboard（中文输入）
 
 ## 安全设计
 
