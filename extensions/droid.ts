@@ -67,6 +67,7 @@ const DROID_RULES = `
 // ── 会话状态 ──────────────────────────────────────────────────
 let origIme: string | null = null; // 首次切 ADBKeyboard 前的原输入法
 let bannerMsg: string | null = null; // 横幅应显示的文案；null=无手机任务（横幅允许不在屏）
+let taskEpoch: number | undefined; // 本任务激活时刻（手机端时钟秒）；早于它的按钮指令=上一任务的残留
 
 // 安全不变量：任务执行期间横幅必须常显（用户暂停/终止的唯一入口）。
 // 仅在截图/触控真正被横幅矩形影响的瞬间可短暂避让，操作后立即恢复。
@@ -122,8 +123,18 @@ function ensureAdbIme(): boolean {
 	return true;
 }
 
+// 手机端时钟（秒）——按钮指令新鲜度的统一时钟（cmd 文件 mtime 是手机端写的）
+function phoneNow(): number {
+	try {
+		return parseInt(adbShell("date +%s", true).trim(), 10) || 0;
+	} catch {
+		return 0;
+	}
+}
+
 function showBanner(msg: string): void {
 	if (!origIme) origIme = currentIme();
+	if (bannerMsg === null) taskEpoch = phoneNow(); // 横幅从无到有=新任务开始，重建残留判定基准
 	// ovl 脚本内部以 -e msg '$1' 单引号拼接且不转义 $1 中的单引号（红队 V15：
 	// 含 ' 的文案可逃逸到手机端 sh 执行任意命令）。传入前按 ovl 的引号约定预转义。
 	const ovlSafe = msg.replace(/'/g, `'\\''`);
@@ -158,10 +169,23 @@ function endBanner(): void {
 	bannerMsg = null;
 }
 
-// 读取并消费悬浮窗按钮命令文件（pause/resume/stop）；文件不存在时 cat exit 1 → || true 兜住
+// 按钮指令新鲜度判定：mtime 早于本任务激活时刻=残留（0=文件不存在/拿不到 mtime，不拦）
+export function isStaleCmd(mtime: number, taskEpoch: number): boolean {
+	return mtime > 0 && mtime <= taskEpoch;
+}
+
+// 读取并消费悬浮窗按钮命令文件（pause/resume/stop）；文件不存在时 cat exit 1 → || true 兜住。
+// 新鲜度校验：mtime 早于本任务激活时刻的指令是上一任务结束后无人消费的残留
+// （用户在任务间隙点 ⏹/⏸ 会写入 cmd，若不校验会被下一个任务的首次检查点误执行），静默丢弃。
 function readCmd(): string {
-	const c = adbShell(`cat ${CMDF} 2>/dev/null || true`, true).trim();
-	if (c) adbShell(`rm -f ${CMDF}`, true);
+	if (taskEpoch === undefined) taskEpoch = phoneNow();
+	const out = adbShell(`m=\$(stat -c %Y ${CMDF} 2>/dev/null || echo 0); c=\$(cat ${CMDF} 2>/dev/null); echo "\$c|\$m"`, true);
+	const [rawC, rawM] = out.trim().split("|");
+	const c = (rawC ?? "").trim();
+	if (!c) return "";
+	const mtime = parseInt(rawM ?? "0", 10) || 0;
+	adbShell(`rm -f ${CMDF}`, true);
+	if (isStaleCmd(mtime, taskEpoch)) return "";
 	return c;
 }
 
